@@ -1,14 +1,32 @@
 import {lessonForHash, neighbors, assetURL} from './navigation.mjs';
 const main=document.querySelector('#main'), nav=document.querySelector('#course-nav');
 let course;
+const sidebar=document.querySelector('#sidebar'), page=document.querySelector('.page'), mobile=matchMedia('(max-width:760px)');
+document.querySelector('.skip').addEventListener('click',e=>{e.preventDefault();main.focus();main.scrollIntoView();});
 const element=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
 const link=(text,href,cls)=>{const a=element('a',cls,text);a.href=href;return a;};
 const time=seconds=>`${Math.floor(seconds/60)}:${String(Math.round(seconds%60)).padStart(2,'0')}`;
 const href=lesson=>`#lesson=${lesson.id}`;
-function menu(open){document.body.classList.toggle('menu-open',open);document.querySelector('#backdrop').hidden=!open;document.querySelector('#open-menu').setAttribute('aria-expanded',String(open));}
+function menu(open){
+ const active=mobile.matches&&open;
+ document.body.classList.toggle('menu-open',active);
+ document.querySelector('#backdrop').hidden=!active;
+ document.querySelector('#open-menu').setAttribute('aria-expanded',String(active));
+ sidebar.toggleAttribute('inert',mobile.matches&&!active);
+ page.toggleAttribute('inert',active);
+ if(active)document.querySelector('#close-menu').focus();
+}
+mobile.addEventListener('change',()=>menu(false));
+document.addEventListener('keydown',e=>{
+ if(e.key!=='Tab'||!document.body.classList.contains('menu-open'))return;
+ const controls=[...sidebar.querySelectorAll('a[href],button,summary')].filter(el=>el.getClientRects().length);
+ const first=controls[0],last=controls.at(-1);
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+});
 document.querySelector('#open-menu').addEventListener('click',()=>menu(true));
 document.querySelector('#close-menu').addEventListener('click',()=>{menu(false);document.querySelector('#open-menu').focus();});
-document.querySelector('#backdrop').addEventListener('click',()=>menu(false));
+document.querySelector('#backdrop').addEventListener('click',()=>{menu(false);document.querySelector('#open-menu').focus();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('menu-open')){menu(false);document.querySelector('#open-menu').focus();}});
 function buildNav(){
  for(const module of course.modules){const d=element('details');d.open=true;const s=element('summary');s.append(element('div','',module.title),element('span','',String(module.lessons.length)));d.append(s);const list=element('div','nav-lessons');for(const lesson of module.lessons){const a=link('',href(lesson),'nav-lesson');a.dataset.lesson=lesson.id;a.append(element('span','nav-icon',lesson.video?'▷':'▤'),element('span','',lesson.title));list.append(a);}d.append(list);nav.append(d);}
